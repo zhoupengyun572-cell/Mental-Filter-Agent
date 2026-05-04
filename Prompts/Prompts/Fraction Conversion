@@ -1,0 +1,38 @@
+async def main(args):
+    params = args.params if hasattr(args, 'params') else args
+    
+    # 🌟 核心修复：如果 user_id 为空（说明在画布里测试），则赋予一个默认测试 ID
+    raw_user_id = params.get('user_id')
+    user_id = str(raw_user_id).strip() if raw_user_id else "Canvas_Test_User_001"
+    
+    current_date = str(params.get('current_date', '')).strip()
+
+    # 1. 严格准入：如果没有日期，不触发落库
+    if not current_date:
+        return {"write_to_feishu": False, "feishu_filter": {}}
+
+    score = int(params.get('score', 0))
+    risk = str(params.get('risk', '否')).strip()
+    state = str(params.get('state', '日常闲聊')).strip()
+
+    # 2. 判定逻辑：只有有意义的数据才落库
+    is_ready = score > 0 or risk == "是" or state != "日常闲聊"
+
+    # 3. 构造严格 Filter
+    feishu_filter = {
+        "conjunction": "and",
+        "conditions": [
+            {"field_name": "用户ID", "operator": "is", "value": [user_id]},
+            {"field_name": "交互日期", "operator": "is", "value": [current_date]}
+        ]
+    }
+
+    return {
+        "write_to_feishu": is_ready,
+        "feishu_filter": feishu_filter,
+        "score": score,
+        "state": state,
+        "risk": risk,
+        "user_id": user_id,
+        "current_date": current_date
+    }
